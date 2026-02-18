@@ -19,9 +19,22 @@ body {
   transition: background 0.2s ease;
 }
 
-/* ⚡ フラッシュ演出 */
+/* ⚡ フラッシュ */
 body.flash {
   background: white !important;
+}
+
+/* 🌀 シャッフル中の振動 */
+.card.shaking {
+  animation: shake 0.08s infinite;
+}
+
+@keyframes shake {
+  0% { transform: translate(0px, 0px); }
+  25% { transform: translate(2px, -2px); }
+  50% { transform: translate(-2px, 2px); }
+  75% { transform: translate(2px, 2px); }
+  100% { transform: translate(-2px, -2px); }
 }
 
 .card-container {
@@ -52,6 +65,7 @@ body.flash {
   font-size: 5rem;
   background: white;
   box-shadow: 0 15px 30px rgba(0,0,0,0.3);
+  transition: transform 0.08s ease, color 0.08s ease;
 }
 
 .back {
@@ -61,6 +75,16 @@ body.flash {
 
 .front {
   transform: rotateY(180deg);
+}
+
+/* 💫 文字ポップ演出 */
+.face.pop {
+  transform: scale(1.2);
+}
+
+/* 🌈 シャッフル中カラー */
+.face.shuffling {
+  color: #ffcc00;
 }
 
 button {
@@ -108,6 +132,7 @@ button {
 
 <script>
 const gojyuon = [
+  // 基本
   "あ","い","う","え","お",
   "か","き","く","け","こ",
   "さ","し","す","せ","そ",
@@ -117,7 +142,16 @@ const gojyuon = [
   "ま","み","む","め","も",
   "や","ゆ","よ",
   "ら","り","る","れ","ろ",
-  "わ","を","ん"
+  "わ","を","ん",
+
+  // 濁音
+  "が","ぎ","ぐ","げ","ご",
+  "ざ","じ","ず","ぜ","ぞ",
+  "だ","ぢ","づ","で","ど",
+  "ば","び","ぶ","べ","ぼ",
+
+  // 半濁音
+  "ぱ","ぴ","ぷ","ぺ","ぽ"
 ];
 
 const card = document.getElementById("card");
@@ -130,7 +164,6 @@ function getRandom() {
   return gojyuon[Math.floor(Math.random() * gojyuon.length)];
 }
 
-/* ✨ キラキラ生成 */
 function createSparkles() {
   for(let i=0;i<25;i++){
     const s = document.createElement("div");
@@ -142,7 +175,6 @@ function createSparkles() {
   }
 }
 
-/* ⚡ 背景フラッシュ */
 function flashBackground() {
   document.body.classList.add("flash");
   setTimeout(() => {
@@ -154,51 +186,55 @@ btn.addEventListener("click", () => {
 
   btn.disabled = true;
   card.classList.remove("flip");
+  card.classList.add("shaking");
+  result.classList.add("shuffling");
 
-  // 🔊 めくる音
   flipSound.currentTime = 0;
   flipSound.play();
 
-  const totalTime = 5000;   // 5秒
-  const slowStart = 4000;   // 最後1秒減速
+  const totalTime = 5000;
+  const slowStart = 4000;
   const startTime = Date.now();
+  let stopped = false;
+
+  setTimeout(() => {
+    if (stopped) return;
+    stopped = true;
+
+    card.classList.remove("shaking");
+    result.classList.remove("shuffling");
+
+    const final = getRandom();
+    result.textContent = final;
+
+    flashBackground();
+    card.classList.add("flip");
+
+    resultSound.currentTime = 0;
+    resultSound.play();
+
+    createSparkles();
+    btn.disabled = false;
+
+  }, totalTime);
 
   function shuffleLoop() {
-    const elapsed = Date.now() - startTime;
+    if (stopped) return;
 
+    const elapsed = Date.now() - startTime;
     result.textContent = getRandom();
 
-    if (elapsed >= totalTime) {
-
-      const final = getRandom();
-      result.textContent = final;
-
-      // ⚡ フラッシュ
-      flashBackground();
-
-      // 🎴 カード回転
-      card.classList.add("flip");
-
-      // 🔊 決定音
-      resultSound.currentTime = 0;
-      resultSound.play();
-
-      createSparkles();
-      btn.disabled = false;
-      return;
-    }
+    // 💫 ポップ演出
+    result.classList.add("pop");
+    setTimeout(() => result.classList.remove("pop"), 60);
 
     let delay;
-
     if (elapsed < slowStart) {
-      delay = 40; // 高速
+      delay = 40;
     } else {
-      const progress = (elapsed - slowStart) / 1000; // 0〜1
-      const eased = Math.pow(progress, 4); 
-      // ←指数4乗で超ドラマチック減速
-
-      delay = 40 + eased * 460; 
-      // 40ms → 最大500ms
+      const progress = (elapsed - slowStart) / 1000;
+      const eased = Math.pow(progress, 4);
+      delay = 40 + eased * 460;
     }
 
     setTimeout(shuffleLoop, delay);
