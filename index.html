@@ -13,11 +13,6 @@ body {
   height: 100vh;
   font-family: sans-serif;
   overflow: hidden;
-  transition: background 0.2s;
-}
-
-.flash {
-  background: white !important;
 }
 
 .container {
@@ -54,20 +49,51 @@ button {
   color: white;
 }
 
-/* 🔥 強制表示 */
-.big-countdown {
+/* 🔥 上部に表示 */
+.countdown-wrapper {
   position: fixed;
-  top: 50%;
+  top: 5%;
   left: 50%;
-  transform: translate(-50%, -50%);
-  font-size: 220px;
-  font-weight: bold;
-  color: yellow;
-  text-shadow: 0 0 40px black;
+  transform: translateX(-50%);
+  width: 200px;
+  height: 200px;
   z-index: 9999;
   opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.2s;
+  transition: opacity 0.3s;
+}
+
+.count-number {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 90px;
+  font-weight: bold;
+  color: white;
+  text-shadow: 0 0 20px black;
+}
+
+svg {
+  transform: rotate(-90deg);
+}
+
+circle {
+  fill: none;
+  stroke-width: 10;
+}
+
+.bg-ring {
+  stroke: rgba(255,255,255,0.2);
+}
+
+.progress-ring {
+  stroke: #ffeb3b;
+  stroke-linecap: round;
+  stroke-dasharray: 565;
+  stroke-dashoffset: 565;
+  transition: stroke-dashoffset 1s linear;
 }
 </style>
 </head>
@@ -80,7 +106,14 @@ button {
   <button id="drawBtn">めくる！</button>
 </div>
 
-<div id="bigCountdown" class="big-countdown"></div>
+<!-- 🔥 クールなカウントダウン -->
+<div class="countdown-wrapper" id="countdownWrapper">
+  <svg width="200" height="200">
+    <circle class="bg-ring" cx="100" cy="100" r="90"></circle>
+    <circle class="progress-ring" id="progressRing" cx="100" cy="100" r="90"></circle>
+  </svg>
+  <div class="count-number" id="countNumber"></div>
+</div>
 
 <audio id="shuffleSound" src="shuffle.mp3" preload="auto"></audio>
 <audio id="resultSound" src="result.mp3" preload="auto"></audio>
@@ -109,48 +142,48 @@ const btn = document.getElementById("drawBtn");
 const card = document.getElementById("card");
 const shuffleSound = document.getElementById("shuffleSound");
 const resultSound = document.getElementById("resultSound");
-const bigCountdown = document.getElementById("bigCountdown");
+
+const countdownWrapper = document.getElementById("countdownWrapper");
+const countNumber = document.getElementById("countNumber");
+const progressRing = document.getElementById("progressRing");
 
 function getRandom() {
   return gojyuon[Math.floor(Math.random() * gojyuon.length)];
 }
 
-function flashBackground() {
-  document.body.classList.add("flash");
-  setTimeout(() => {
-    document.body.classList.remove("flash");
-  }, 150);
-}
-
-function startBigCountdown() {
+function startCountdown() {
   let count = 5;
+  countdownWrapper.style.opacity = 1;
 
-  bigCountdown.style.opacity = 1;
-  bigCountdown.textContent = count;
+  function update() {
+    countNumber.textContent = count;
 
-  const interval = setInterval(() => {
-    count--;
+    progressRing.style.transition = "none";
+    progressRing.style.strokeDashoffset = 565;
 
-    if (count > 0) {
-      bigCountdown.textContent = count;
-    } else {
-      bigCountdown.style.opacity = 0;
-      bigCountdown.textContent = "";
-      clearInterval(interval);
+    setTimeout(() => {
+      progressRing.style.transition = "stroke-dashoffset 1s linear";
+      progressRing.style.strokeDashoffset = 0;
+    }, 50);
+
+    if (count === 0) {
+      countdownWrapper.style.opacity = 0;
+      return;
     }
 
-  }, 1000);
+    count--;
+    setTimeout(update, 1000);
+  }
+
+  update();
 }
 
 btn.addEventListener("click", async () => {
 
   btn.disabled = true;
   card.classList.remove("flip");
-  bigCountdown.style.opacity = 0;
-  bigCountdown.textContent = "";
 
   const totalTime = 5000;
-  const slowStart = 4000;
   const startTime = Date.now();
   let stopped = false;
 
@@ -162,14 +195,12 @@ btn.addEventListener("click", async () => {
 
   setTimeout(async () => {
     stopped = true;
-
     shuffleSound.pause();
     shuffleSound.currentTime = 0;
 
     const final = getRandom();
     result.textContent = final;
 
-    flashBackground();
     card.classList.add("flip");
 
     try {
@@ -177,8 +208,7 @@ btn.addEventListener("click", async () => {
       await resultSound.play();
     } catch (e) {}
 
-    // 🔥 1秒後に確実発火
-    setTimeout(startBigCountdown, 1000);
+    setTimeout(startCountdown, 1000);
 
     btn.disabled = false;
 
@@ -187,20 +217,8 @@ btn.addEventListener("click", async () => {
   function shuffleLoop() {
     if (stopped) return;
 
-    const elapsed = Date.now() - startTime;
     result.textContent = getRandom();
-
-    let delay;
-
-    if (elapsed < slowStart) {
-      delay = 150;
-    } else {
-      const progress = (elapsed - slowStart) / 1000;
-      const eased = Math.pow(progress, 4);
-      delay = 150 + eased * 500;
-    }
-
-    setTimeout(shuffleLoop, delay);
+    setTimeout(shuffleLoop, 200);
   }
 
   shuffleLoop();
