@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>五十音カードランダム</title>
+<title>五十音カードガチャ</title>
 
 <style>
 body {
@@ -12,9 +12,16 @@ body {
   align-items: center;
   justify-content: center;
   height: 100vh;
+  margin: 0;
   background: linear-gradient(135deg,#667eea,#764ba2);
   font-family: sans-serif;
   overflow: hidden;
+  transition: background 0.2s ease;
+}
+
+/* ⚡ フラッシュ演出 */
+body.flash {
+  background: white !important;
 }
 
 .card-container {
@@ -70,17 +77,17 @@ button {
 /* ✨ キラキラ */
 .sparkle {
   position: absolute;
-  width: 10px;
-  height: 10px;
+  width: 12px;
+  height: 12px;
   background: gold;
   border-radius: 50%;
   pointer-events: none;
-  animation: sparkleAnim 800ms ease-out forwards;
+  animation: sparkleAnim 900ms ease-out forwards;
 }
 
 @keyframes sparkleAnim {
   0% { transform: scale(1); opacity: 1; }
-  100% { transform: translateY(-100px) scale(0); opacity: 0; }
+  100% { transform: translateY(-120px) scale(0); opacity: 0; }
 }
 </style>
 </head>
@@ -96,7 +103,6 @@ button {
 
 <button id="generate">めくる</button>
 
-<!-- 🔊 2段階SE -->
 <audio id="flipSound" src="flip.mp3"></audio>
 <audio id="resultSound" src="result.mp3"></audio>
 
@@ -121,20 +127,27 @@ const flipSound = document.getElementById("flipSound");
 const resultSound = document.getElementById("resultSound");
 
 function getRandom() {
-  const idx = Math.floor(Math.random() * gojyuon.length);
-  return gojyuon[idx];
+  return gojyuon[Math.floor(Math.random() * gojyuon.length)];
 }
 
 /* ✨ キラキラ生成 */
 function createSparkles() {
-  for(let i=0;i<20;i++){
+  for(let i=0;i<25;i++){
     const s = document.createElement("div");
     s.className = "sparkle";
-    s.style.left = window.innerWidth/2 + (Math.random()*100-50) + "px";
-    s.style.top = window.innerHeight/2 + (Math.random()*100-50) + "px";
+    s.style.left = window.innerWidth/2 + (Math.random()*140-70) + "px";
+    s.style.top = window.innerHeight/2 + (Math.random()*140-70) + "px";
     document.body.appendChild(s);
-    setTimeout(()=>s.remove(),800);
+    setTimeout(()=>s.remove(),900);
   }
+}
+
+/* ⚡ 背景フラッシュ */
+function flashBackground() {
+  document.body.classList.add("flash");
+  setTimeout(() => {
+    document.body.classList.remove("flash");
+  }, 120);
 }
 
 btn.addEventListener("click", () => {
@@ -142,32 +155,56 @@ btn.addEventListener("click", () => {
   btn.disabled = true;
   card.classList.remove("flip");
 
-  /* 🔊 めくる音 */
+  // 🔊 めくる音
   flipSound.currentTime = 0;
   flipSound.play();
 
-  /* 🎲 高速シャッフル演出 */
-  let count = 0;
-  const shuffle = setInterval(() => {
-    result.textContent = getRandom();
-    count++;
-    if(count > 15){
-      clearInterval(shuffle);
+  const totalTime = 5000;   // 5秒
+  const slowStart = 4000;   // 最後1秒減速
+  const startTime = Date.now();
 
-      /* 最終確定 */
+  function shuffleLoop() {
+    const elapsed = Date.now() - startTime;
+
+    result.textContent = getRandom();
+
+    if (elapsed >= totalTime) {
+
       const final = getRandom();
       result.textContent = final;
 
+      // ⚡ フラッシュ
+      flashBackground();
+
+      // 🎴 カード回転
       card.classList.add("flip");
 
-      /* 🔊 決定音 */
+      // 🔊 決定音
       resultSound.currentTime = 0;
       resultSound.play();
 
       createSparkles();
       btn.disabled = false;
+      return;
     }
-  }, 60);
+
+    let delay;
+
+    if (elapsed < slowStart) {
+      delay = 40; // 高速
+    } else {
+      const progress = (elapsed - slowStart) / 1000; // 0〜1
+      const eased = Math.pow(progress, 4); 
+      // ←指数4乗で超ドラマチック減速
+
+      delay = 40 + eased * 460; 
+      // 40ms → 最大500ms
+    }
+
+    setTimeout(shuffleLoop, delay);
+  }
+
+  shuffleLoop();
 });
 </script>
 
