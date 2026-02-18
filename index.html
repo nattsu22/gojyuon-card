@@ -2,13 +2,13 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>五十音カードガチャ - ショート最終版</title>
+<title>五十音カードガチャ - ショートバズ版</title>
 <style>
 html, body {
   margin: 0;
   width: 100vw;
   height: 100vh;
-  background: #00E600; /* 赤背景合成用グリーン */
+  background: #00E600; /* 赤背景用クロマキーグリーン */
   display: flex;
   justify-content: center;
   align-items: center;
@@ -22,9 +22,9 @@ html, body {
   height: 100%;
   display: flex;
   flex-direction: column;
-  justify-content: flex-start; /* 上寄せ */
+  justify-content: flex-start;
   align-items: center;
-  padding-top: 15%; /* カード少し上寄せ */
+  padding-top: 15%; /* 上寄せ */
 }
 
 /* ===== カード ===== */
@@ -39,17 +39,28 @@ html, body {
   font-size: 110px;
   margin: 20px auto;
   box-shadow: 0 20px 40px rgba(0,0,0,0.5);
-  transition: transform 0.6s, filter 0.3s;
+  transition: transform 0.6s, filter 0.2s;
 }
 
 .flip {
-  transform: rotateY(360deg) scale(1.05);
+  transform: rotateY(360deg) rotateZ(10deg) scale(1.05);
 }
 
-/* フラッシュ用 */
+/* フラッシュ演出 */
 .flash {
   filter: brightness(3);
   transition: filter 0.2s;
+}
+
+/* カウント終了バウンド */
+.bounce {
+  animation: bounceCard 0.4s ease-out forwards;
+}
+
+@keyframes bounceCard {
+  0% { transform: scale(1.05) translateY(0); }
+  50% { transform: scale(1.2) translateY(-20px); }
+  100% { transform: scale(1.05) translateY(0); }
 }
 
 /* ===== ボタン ===== */
@@ -174,77 +185,76 @@ function getRandom() {
   return gojyuon[Math.floor(Math.random() * gojyuon.length)];
 }
 
-// カウントダウン関数
+// カウントダウン
 function startCountdown() {
   let count = 5;
   wrapper.style.display = "block";
 
   function tick() {
     number.textContent = count;
-
-    // 数字色とスケール変化
     number.style.transform = "scale(1.3)";
     if (count >= 4) ring.style.stroke = "#00FFFF";
     else if (count >= 2) ring.style.stroke = "#FFFF00";
     else ring.style.stroke = "#FF0000";
 
-    // リングアニメ
     ring.style.transition = "none";
     ring.style.strokeDashoffset = circumference;
-    setTimeout(() => {
+    setTimeout(()=>{
       ring.style.transition = "stroke-dashoffset 1s linear";
       ring.style.strokeDashoffset = 0;
       number.style.transform = "scale(1)";
-    }, 50);
+    },50);
 
-    if (count === 0) {
-      wrapper.style.display = "none";
+    if (count === 0){
+      wrapper.style.display="none";
+      card.classList.add("bounce"); // カードバウンド
+      setTimeout(()=>card.classList.remove("bounce"),400);
       return;
     }
 
     count--;
-    setTimeout(tick, 1000);
+    setTimeout(tick,1000);
   }
 
   tick();
 }
 
-// カードフラッシュ演出
+// カードフラッシュ
 function flashCard() {
   card.classList.add("flash");
-  setTimeout(()=>card.classList.remove("flash"), 200);
+  setTimeout(()=>card.classList.remove("flash"),200);
 }
 
-// ボタンクリック
-btn.addEventListener("click", () => {
-  btn.disabled = true;
+// ボタン処理
+btn.addEventListener("click",()=>{
+  btn.disabled=true;
   card.classList.remove("flip");
 
   shuffleSound.loop = true;
-  shuffleSound.currentTime = 0;
+  shuffleSound.currentTime=0;
   shuffleSound.play().catch(()=>{});
 
-  setTimeout(() => {
+  setTimeout(()=>{
 
     shuffleSound.pause();
-    shuffleSound.currentTime = 0;
+    shuffleSound.currentTime=0;
 
     result.textContent = getRandom();
 
     card.classList.add("flip");
-    flashCard(); // カード光る
+    flashCard();
     resultSound.play().catch(()=>{});
 
-    setTimeout(startCountdown, 1000);
+    setTimeout(startCountdown,1000);
 
-    btn.disabled = false;
+    btn.disabled=false;
 
-  }, 5000);
+  },5000);
 
-  function shuffleLoop() {
-    if (!btn.disabled) return;
+  function shuffleLoop(){
+    if(!btn.disabled) return;
     result.textContent = getRandom();
-    setTimeout(shuffleLoop, 220);
+    setTimeout(shuffleLoop,220);
   }
 
   shuffleLoop();
