@@ -73,7 +73,6 @@ button {
   <button id="drawBtn">めくる！</button>
 </div>
 
-<!-- 音 -->
 <audio id="shuffleSound" src="shuffle.mp3"></audio>
 <audio id="resultSound" src="result.mp3"></audio>
 
@@ -121,7 +120,6 @@ function createSparkles() {
     sparkle.style.left = (window.innerWidth/2 + (Math.random()*200-100)) + "px";
     sparkle.style.top = (window.innerHeight/2) + "px";
     document.body.appendChild(sparkle);
-
     setTimeout(() => sparkle.remove(), 1000);
   }
 }
@@ -131,15 +129,11 @@ btn.addEventListener("click", () => {
   btn.disabled = true;
   card.classList.remove("flip");
 
-  // めくる前は？
-  result.textContent = "？";
-
   const totalTime = 5000;
   const slowStart = 4000;
   const startTime = Date.now();
   let stopped = false;
 
-  // ★ 5秒ぴったりで決定
   setTimeout(() => {
     stopped = true;
 
@@ -162,7 +156,6 @@ btn.addEventListener("click", () => {
 
     const elapsed = Date.now() - startTime;
 
-    // シャッフル中は毎回ランダム文字
     result.textContent = getRandom();
 
     shuffleSound.currentTime = 0;
@@ -171,11 +164,11 @@ btn.addEventListener("click", () => {
     let delay;
 
     if (elapsed < slowStart) {
-      delay = 40; // 高速
+      delay = 80; // ← 少し遅くした
     } else {
       const progress = (elapsed - slowStart) / 1000;
-      const eased = Math.pow(progress, 4); // 指数減速
-      delay = 40 + eased * 460;
+      const eased = Math.pow(progress, 4);
+      delay = 80 + eased * 420;
     }
 
     setTimeout(shuffleLoop, delay);
