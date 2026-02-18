@@ -13,6 +13,7 @@ body {
   height: 100vh;
   font-family: sans-serif;
   transition: background 0.2s;
+  overflow: hidden;
 }
 
 .flash {
@@ -21,6 +22,8 @@ body {
 
 .container {
   text-align: center;
+  position: relative;
+  z-index: 1;
 }
 
 .card {
@@ -50,6 +53,19 @@ button {
   background: #ff6b6b;
   color: white;
 }
+
+.big-countdown {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 200px;
+  font-weight: bold;
+  color: white;
+  text-shadow: 0 0 30px rgba(0,0,0,0.6);
+  z-index: 999;
+  pointer-events: none;
+}
 </style>
 </head>
 <body>
@@ -60,6 +76,8 @@ button {
   </div>
   <button id="drawBtn">めくる！</button>
 </div>
+
+<div id="bigCountdown" class="big-countdown"></div>
 
 <audio id="shuffleSound" src="shuffle.mp3" preload="auto"></audio>
 <audio id="resultSound" src="result.mp3" preload="auto"></audio>
@@ -88,6 +106,7 @@ const btn = document.getElementById("drawBtn");
 const card = document.getElementById("card");
 const shuffleSound = document.getElementById("shuffleSound");
 const resultSound = document.getElementById("resultSound");
+const bigCountdown = document.getElementById("bigCountdown");
 
 function getRandom() {
   return gojyuon[Math.floor(Math.random() * gojyuon.length)];
@@ -100,10 +119,28 @@ function flashBackground() {
   }, 150);
 }
 
+function startBigCountdown() {
+  let count = 5;
+  bigCountdown.textContent = count;
+
+  const interval = setInterval(() => {
+    count--;
+
+    if (count > 0) {
+      bigCountdown.textContent = count;
+    } else {
+      bigCountdown.textContent = "";
+      clearInterval(interval);
+    }
+
+  }, 1000);
+}
+
 btn.addEventListener("click", async () => {
 
   btn.disabled = true;
   card.classList.remove("flip");
+  bigCountdown.textContent = "";
 
   const totalTime = 5000;
   const slowStart = 4000;
@@ -114,9 +151,7 @@ btn.addEventListener("click", async () => {
     shuffleSound.loop = true;
     shuffleSound.currentTime = 0;
     await shuffleSound.play();
-  } catch (e) {
-    console.log("再生エラー:", e);
-  }
+  } catch (e) {}
 
   setTimeout(async () => {
     stopped = true;
@@ -133,9 +168,12 @@ btn.addEventListener("click", async () => {
     try {
       resultSound.currentTime = 0;
       await resultSound.play();
-    } catch (e) {
-      console.log("結果音エラー:", e);
-    }
+    } catch (e) {}
+
+    // 🔥 1秒後に巨大カウント
+    setTimeout(() => {
+      startBigCountdown();
+    }, 1000);
 
     btn.disabled = false;
 
