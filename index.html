@@ -12,7 +12,6 @@ body {
   align-items: center;
   height: 100vh;
   font-family: sans-serif;
-  overflow: hidden;
   transition: background 0.2s;
 }
 
@@ -51,17 +50,6 @@ button {
   background: #ff6b6b;
   color: white;
 }
-
-.sparkle {
-  position: absolute;
-  font-size: 20px;
-  animation: sparkle 1s ease-out forwards;
-}
-
-@keyframes sparkle {
-  0% {opacity:1; transform: translateY(0) scale(1);}
-  100% {opacity:0; transform: translateY(-80px) scale(2);}
-}
 </style>
 </head>
 <body>
@@ -73,8 +61,9 @@ button {
   <button id="drawBtn">めくる！</button>
 </div>
 
-<audio id="shuffleSound" src="shuffle.mp3"></audio>
-<audio id="resultSound" src="result.mp3"></audio>
+<!-- ★ 必ず同じフォルダに置く -->
+<audio id="shuffleSound" src="shuffle.mp3" preload="auto"></audio>
+<audio id="resultSound" src="result.mp3" preload="auto"></audio>
 
 <script>
 const gojyuon = [
@@ -112,19 +101,7 @@ function flashBackground() {
   }, 150);
 }
 
-function createSparkles() {
-  for (let i = 0; i < 20; i++) {
-    const sparkle = document.createElement("div");
-    sparkle.className = "sparkle";
-    sparkle.textContent = "✨";
-    sparkle.style.left = (window.innerWidth/2 + (Math.random()*200-100)) + "px";
-    sparkle.style.top = (window.innerHeight/2) + "px";
-    document.body.appendChild(sparkle);
-    setTimeout(() => sparkle.remove(), 1000);
-  }
-}
-
-btn.addEventListener("click", () => {
+btn.addEventListener("click", async () => {
 
   btn.disabled = true;
   card.classList.remove("flip");
@@ -134,15 +111,18 @@ btn.addEventListener("click", () => {
   const startTime = Date.now();
   let stopped = false;
 
-  // 🔥 シャッフルSE流しっぱなし
-  shuffleSound.loop = true;
-  shuffleSound.currentTime = 0;
-  shuffleSound.play();
+  // 🔥 確実に再生（async/await）
+  try {
+    shuffleSound.loop = true;
+    shuffleSound.currentTime = 0;
+    await shuffleSound.play();
+  } catch (e) {
+    console.log("再生エラー:", e);
+  }
 
-  setTimeout(() => {
+  setTimeout(async () => {
     stopped = true;
 
-    // シャッフル音停止
     shuffleSound.pause();
     shuffleSound.currentTime = 0;
 
@@ -152,10 +132,13 @@ btn.addEventListener("click", () => {
     flashBackground();
     card.classList.add("flip");
 
-    resultSound.currentTime = 0;
-    resultSound.play();
+    try {
+      resultSound.currentTime = 0;
+      await resultSound.play();
+    } catch (e) {
+      console.log("結果音エラー:", e);
+    }
 
-    createSparkles();
     btn.disabled = false;
 
   }, totalTime);
@@ -170,11 +153,11 @@ btn.addEventListener("click", () => {
     let delay;
 
     if (elapsed < slowStart) {
-      delay = 120; // ← ゆっくり
+      delay = 150; // ← さらにゆっくり
     } else {
       const progress = (elapsed - slowStart) / 1000;
       const eased = Math.pow(progress, 4);
-      delay = 120 + eased * 400;
+      delay = 150 + eased * 500;
     }
 
     setTimeout(shuffleLoop, delay);
