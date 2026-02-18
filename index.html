@@ -134,8 +134,17 @@ btn.addEventListener("click", () => {
   const startTime = Date.now();
   let stopped = false;
 
+  // 🔥 シャッフルSE流しっぱなし
+  shuffleSound.loop = true;
+  shuffleSound.currentTime = 0;
+  shuffleSound.play();
+
   setTimeout(() => {
     stopped = true;
+
+    // シャッフル音停止
+    shuffleSound.pause();
+    shuffleSound.currentTime = 0;
 
     const final = getRandom();
     result.textContent = final;
@@ -158,17 +167,14 @@ btn.addEventListener("click", () => {
 
     result.textContent = getRandom();
 
-    shuffleSound.currentTime = 0;
-    shuffleSound.play();
-
     let delay;
 
     if (elapsed < slowStart) {
-      delay = 80; // ← 少し遅くした
+      delay = 120; // ← ゆっくり
     } else {
       const progress = (elapsed - slowStart) / 1000;
       const eased = Math.pow(progress, 4);
-      delay = 80 + eased * 420;
+      delay = 120 + eased * 400;
     }
 
     setTimeout(shuffleLoop, delay);
