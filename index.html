@@ -12,8 +12,8 @@ body {
   align-items: center;
   height: 100vh;
   font-family: sans-serif;
-  transition: background 0.2s;
   overflow: hidden;
+  transition: background 0.2s;
 }
 
 .flash {
@@ -54,17 +54,20 @@ button {
   color: white;
 }
 
+/* 🔥 強制表示 */
 .big-countdown {
   position: fixed;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  font-size: 200px;
+  font-size: 220px;
   font-weight: bold;
-  color: white;
-  text-shadow: 0 0 30px rgba(0,0,0,0.6);
-  z-index: 999;
+  color: yellow;
+  text-shadow: 0 0 40px black;
+  z-index: 9999;
+  opacity: 0;
   pointer-events: none;
+  transition: opacity 0.2s;
 }
 </style>
 </head>
@@ -121,6 +124,8 @@ function flashBackground() {
 
 function startBigCountdown() {
   let count = 5;
+
+  bigCountdown.style.opacity = 1;
   bigCountdown.textContent = count;
 
   const interval = setInterval(() => {
@@ -129,6 +134,7 @@ function startBigCountdown() {
     if (count > 0) {
       bigCountdown.textContent = count;
     } else {
+      bigCountdown.style.opacity = 0;
       bigCountdown.textContent = "";
       clearInterval(interval);
     }
@@ -140,6 +146,7 @@ btn.addEventListener("click", async () => {
 
   btn.disabled = true;
   card.classList.remove("flip");
+  bigCountdown.style.opacity = 0;
   bigCountdown.textContent = "";
 
   const totalTime = 5000;
@@ -170,10 +177,8 @@ btn.addEventListener("click", async () => {
       await resultSound.play();
     } catch (e) {}
 
-    // 🔥 1秒後に巨大カウント
-    setTimeout(() => {
-      startBigCountdown();
-    }, 1000);
+    // 🔥 1秒後に確実発火
+    setTimeout(startBigCountdown, 1000);
 
     btn.disabled = false;
 
