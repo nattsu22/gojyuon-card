@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <title>五十音カードガチャ</title>
+
 <style>
 body {
   margin: 0;
@@ -17,8 +18,6 @@ body {
 
 .container {
   text-align: center;
-  position: relative;
-  z-index: 1;
 }
 
 .card {
@@ -49,17 +48,16 @@ button {
   color: white;
 }
 
-/* 🔥 上部に表示 */
+/* 🔥 絶対に上 */
 .countdown-wrapper {
   position: fixed;
-  top: 5%;
+  top: 80px;   /* ← ここ重要 */
   left: 50%;
   transform: translateX(-50%);
-  width: 200px;
-  height: 200px;
+  width: 180px;
+  height: 180px;
   z-index: 9999;
-  opacity: 0;
-  transition: opacity 0.3s;
+  display: none;
 }
 
 .count-number {
@@ -69,7 +67,7 @@ button {
   display: flex;
   justify-content: center;
   align-items: center;
-  font-size: 90px;
+  font-size: 80px;
   font-weight: bold;
   color: white;
   text-shadow: 0 0 20px black;
@@ -89,11 +87,8 @@ circle {
 }
 
 .progress-ring {
-  stroke: #ffeb3b;
+  stroke: #00ffea;
   stroke-linecap: round;
-  stroke-dasharray: 565;
-  stroke-dashoffset: 565;
-  transition: stroke-dashoffset 1s linear;
 }
 </style>
 </head>
@@ -106,17 +101,16 @@ circle {
   <button id="drawBtn">めくる！</button>
 </div>
 
-<!-- 🔥 クールなカウントダウン -->
 <div class="countdown-wrapper" id="countdownWrapper">
-  <svg width="200" height="200">
-    <circle class="bg-ring" cx="100" cy="100" r="90"></circle>
-    <circle class="progress-ring" id="progressRing" cx="100" cy="100" r="90"></circle>
+  <svg width="180" height="180">
+    <circle class="bg-ring" cx="90" cy="90" r="80"></circle>
+    <circle class="progress-ring" id="progressRing" cx="90" cy="90" r="80"></circle>
   </svg>
   <div class="count-number" id="countNumber"></div>
 </div>
 
-<audio id="shuffleSound" src="shuffle.mp3" preload="auto"></audio>
-<audio id="resultSound" src="result.mp3" preload="auto"></audio>
+<audio id="shuffleSound" src="shuffle.mp3"></audio>
+<audio id="resultSound" src="result.mp3"></audio>
 
 <script>
 const gojyuon = [
@@ -143,9 +137,14 @@ const card = document.getElementById("card");
 const shuffleSound = document.getElementById("shuffleSound");
 const resultSound = document.getElementById("resultSound");
 
-const countdownWrapper = document.getElementById("countdownWrapper");
-const countNumber = document.getElementById("countNumber");
-const progressRing = document.getElementById("progressRing");
+const wrapper = document.getElementById("countdownWrapper");
+const number = document.getElementById("countNumber");
+const ring = document.getElementById("progressRing");
+
+const radius = 80;
+const circumference = 2 * Math.PI * radius;
+
+ring.style.strokeDasharray = circumference;
 
 function getRandom() {
   return gojyuon[Math.floor(Math.random() * gojyuon.length)];
@@ -153,29 +152,29 @@ function getRandom() {
 
 function startCountdown() {
   let count = 5;
-  countdownWrapper.style.opacity = 1;
+  wrapper.style.display = "block";
 
-  function update() {
-    countNumber.textContent = count;
+  function tick() {
+    number.textContent = count;
 
-    progressRing.style.transition = "none";
-    progressRing.style.strokeDashoffset = 565;
+    ring.style.transition = "none";
+    ring.style.strokeDashoffset = circumference;
 
     setTimeout(() => {
-      progressRing.style.transition = "stroke-dashoffset 1s linear";
-      progressRing.style.strokeDashoffset = 0;
+      ring.style.transition = "stroke-dashoffset 1s linear";
+      ring.style.strokeDashoffset = 0;
     }, 50);
 
     if (count === 0) {
-      countdownWrapper.style.opacity = 0;
+      wrapper.style.display = "none";
       return;
     }
 
     count--;
-    setTimeout(update, 1000);
+    setTimeout(tick, 1000);
   }
 
-  update();
+  tick();
 }
 
 btn.addEventListener("click", async () => {
@@ -183,40 +182,28 @@ btn.addEventListener("click", async () => {
   btn.disabled = true;
   card.classList.remove("flip");
 
-  const totalTime = 5000;
-  const startTime = Date.now();
-  let stopped = false;
+  shuffleSound.loop = true;
+  shuffleSound.currentTime = 0;
+  shuffleSound.play().catch(()=>{});
 
-  try {
-    shuffleSound.loop = true;
-    shuffleSound.currentTime = 0;
-    await shuffleSound.play();
-  } catch (e) {}
+  setTimeout(() => {
 
-  setTimeout(async () => {
-    stopped = true;
     shuffleSound.pause();
     shuffleSound.currentTime = 0;
 
-    const final = getRandom();
-    result.textContent = final;
-
+    result.textContent = getRandom();
     card.classList.add("flip");
 
-    try {
-      resultSound.currentTime = 0;
-      await resultSound.play();
-    } catch (e) {}
+    resultSound.play().catch(()=>{});
 
     setTimeout(startCountdown, 1000);
 
     btn.disabled = false;
 
-  }, totalTime);
+  }, 5000);
 
   function shuffleLoop() {
-    if (stopped) return;
-
+    if (!btn.disabled) return;
     result.textContent = getRandom();
     setTimeout(shuffleLoop, 200);
   }
