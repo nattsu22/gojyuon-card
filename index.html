@@ -51,19 +51,35 @@ button {
 /* 🔥 絶対に上 */
 .countdown-wrapper {
   position: fixed;
-  top: 80px;   /* ← ここ重要 */
+  top: 80px;
   left: 50%;
   transform: translateX(-50%);
   width: 180px;
   height: 180px;
   z-index: 9999;
   display: none;
+  position: fixed;
 }
 
+/* 🔥 これ追加 */
+.countdown-wrapper {
+  position: fixed;
+}
+
+/* 🔥 SVGを絶対配置 */
+.countdown-wrapper svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+/* 🔥 数字も絶対配置＆中央固定 */
 .count-number {
   position: absolute;
-  width: 100%;
-  height: 100%;
+  top: 0;
+  left: 0;
+  width: 180px;
+  height: 180px;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -71,6 +87,7 @@ button {
   font-weight: bold;
   color: white;
   text-shadow: 0 0 20px black;
+  z-index: 10;
 }
 
 svg {
@@ -214,3 +231,4 @@ btn.addEventListener("click", async () => {
 
 </body>
 </html>
+
