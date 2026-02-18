@@ -61,7 +61,6 @@ button {
   <button id="drawBtn">めくる！</button>
 </div>
 
-<!-- ★ 必ず同じフォルダに置く -->
 <audio id="shuffleSound" src="shuffle.mp3" preload="auto"></audio>
 <audio id="resultSound" src="result.mp3" preload="auto"></audio>
 
@@ -111,7 +110,6 @@ btn.addEventListener("click", async () => {
   const startTime = Date.now();
   let stopped = false;
 
-  // 🔥 確実に再生（async/await）
   try {
     shuffleSound.loop = true;
     shuffleSound.currentTime = 0;
@@ -147,13 +145,12 @@ btn.addEventListener("click", async () => {
     if (stopped) return;
 
     const elapsed = Date.now() - startTime;
-
     result.textContent = getRandom();
 
     let delay;
 
     if (elapsed < slowStart) {
-      delay = 150; // ← さらにゆっくり
+      delay = 150;
     } else {
       const progress = (elapsed - slowStart) / 1000;
       const eased = Math.pow(progress, 4);
