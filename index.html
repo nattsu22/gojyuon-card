@@ -2,109 +2,117 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>五十音カードガチャ</title>
-
+<title>五十音カードガチャ - ショート最終版</title>
 <style>
-body {
+html, body {
   margin: 0;
-  background: #00FF00; /* クロマキー用グリーン */
+  width: 100vw;
+  height: 100vh;
+  background: #00E600; /* 赤背景合成用グリーン */
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100vh;
   font-family: sans-serif;
   overflow: hidden;
 }
 
 .container {
-  text-align: center;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start; /* 上寄せ */
+  align-items: center;
+  padding-top: 15%; /* カード少し上寄せ */
 }
 
+/* ===== カード ===== */
 .card {
-  width: 200px;
-  height: 260px;
+  width: 220px;
+  height: 280px;
   background: white;
   border-radius: 20px;
   display: flex;
   justify-content: center;
   align-items: center;
-  font-size: 100px;
+  font-size: 110px;
   margin: 20px auto;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.3);
-  transition: transform 0.6s;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+  transition: transform 0.6s, filter 0.3s;
 }
 
 .flip {
-  transform: rotateY(360deg);
+  transform: rotateY(360deg) scale(1.05);
 }
 
-button {
-  padding: 12px 30px;
-  font-size: 18px;
+/* フラッシュ用 */
+.flash {
+  filter: brightness(3);
+  transition: filter 0.2s;
+}
+
+/* ===== ボタン ===== */
+#drawBtn {
+  position: absolute;
+  bottom: 30%; /* 下30%空け */
+  padding: 16px 40px;
+  font-size: 22px;
   border-radius: 30px;
   border: none;
   cursor: pointer;
-  background: #ff6b6b;
+  background: #ff4444;
   color: white;
 }
 
-/* 🔥 絶対に上 */
+/* ===== カウントダウン ===== */
 .countdown-wrapper {
-  position: fixed;
-  top: 80px;
+  position: absolute;
+  top: 15%;
   left: 50%;
   transform: translateX(-50%);
-  width: 180px;
-  height: 180px;
+  width: 200px;
+  height: 200px;
   z-index: 9999;
   display: none;
-  position: fixed;
 }
 
-/* 🔥 これ追加 */
-.countdown-wrapper {
-  position: fixed;
-}
-
-/* 🔥 SVGを絶対配置 */
 .countdown-wrapper svg {
   position: absolute;
   top: 0;
   left: 0;
+  transform: rotate(-90deg);
 }
 
-/* 🔥 数字も絶対配置＆中央固定 */
 .count-number {
   position: absolute;
   top: 0;
   left: 0;
-  width: 180px;
-  height: 180px;
+  width: 200px;
+  height: 200px;
   display: flex;
   justify-content: center;
   align-items: center;
-  font-size: 80px;
+  font-size: 90px;
   font-weight: bold;
   color: white;
-  text-shadow: 0 0 20px black;
+  text-shadow: 0 0 25px black;
   z-index: 10;
-}
-
-svg {
-  transform: rotate(-90deg);
+  transform: scale(1);
+  transition: transform 0.2s ease, color 0.3s ease;
 }
 
 circle {
   fill: none;
-  stroke-width: 10;
+  stroke-width: 12;
 }
 
 .bg-ring {
-  stroke: rgba(255,255,255,0.2);
+  stroke: transparent;
 }
 
 .progress-ring {
-  stroke: #00ffea;
+  stroke: #00FFFF;
   stroke-linecap: round;
 }
 </style>
@@ -119,9 +127,9 @@ circle {
 </div>
 
 <div class="countdown-wrapper" id="countdownWrapper">
-  <svg width="180" height="180">
-    <circle class="bg-ring" cx="90" cy="90" r="80"></circle>
-    <circle class="progress-ring" id="progressRing" cx="90" cy="90" r="80"></circle>
+  <svg width="200" height="200">
+    <circle class="bg-ring" cx="100" cy="100" r="85"></circle>
+    <circle class="progress-ring" id="progressRing" cx="100" cy="100" r="85"></circle>
   </svg>
   <div class="count-number" id="countNumber"></div>
 </div>
@@ -158,15 +166,15 @@ const wrapper = document.getElementById("countdownWrapper");
 const number = document.getElementById("countNumber");
 const ring = document.getElementById("progressRing");
 
-const radius = 80;
+const radius = 85;
 const circumference = 2 * Math.PI * radius;
-
 ring.style.strokeDasharray = circumference;
 
 function getRandom() {
   return gojyuon[Math.floor(Math.random() * gojyuon.length)];
 }
 
+// カウントダウン関数
 function startCountdown() {
   let count = 5;
   wrapper.style.display = "block";
@@ -174,12 +182,19 @@ function startCountdown() {
   function tick() {
     number.textContent = count;
 
+    // 数字色とスケール変化
+    number.style.transform = "scale(1.3)";
+    if (count >= 4) ring.style.stroke = "#00FFFF";
+    else if (count >= 2) ring.style.stroke = "#FFFF00";
+    else ring.style.stroke = "#FF0000";
+
+    // リングアニメ
     ring.style.transition = "none";
     ring.style.strokeDashoffset = circumference;
-
     setTimeout(() => {
       ring.style.transition = "stroke-dashoffset 1s linear";
       ring.style.strokeDashoffset = 0;
+      number.style.transform = "scale(1)";
     }, 50);
 
     if (count === 0) {
@@ -194,8 +209,14 @@ function startCountdown() {
   tick();
 }
 
-btn.addEventListener("click", async () => {
+// カードフラッシュ演出
+function flashCard() {
+  card.classList.add("flash");
+  setTimeout(()=>card.classList.remove("flash"), 200);
+}
 
+// ボタンクリック
+btn.addEventListener("click", () => {
   btn.disabled = true;
   card.classList.remove("flip");
 
@@ -209,8 +230,9 @@ btn.addEventListener("click", async () => {
     shuffleSound.currentTime = 0;
 
     result.textContent = getRandom();
-    card.classList.add("flip");
 
+    card.classList.add("flip");
+    flashCard(); // カード光る
     resultSound.play().catch(()=>{});
 
     setTimeout(startCountdown, 1000);
@@ -222,7 +244,7 @@ btn.addEventListener("click", async () => {
   function shuffleLoop() {
     if (!btn.disabled) return;
     result.textContent = getRandom();
-    setTimeout(shuffleLoop, 200);
+    setTimeout(shuffleLoop, 220);
   }
 
   shuffleLoop();
@@ -231,5 +253,3 @@ btn.addEventListener("click", async () => {
 
 </body>
 </html>
-
-
