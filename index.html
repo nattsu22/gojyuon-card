@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <title>五十音カード</title>
 
-<!-- 極太フォント -->
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@900&display=swap" rel="stylesheet">
 
 <style>
@@ -12,7 +11,7 @@ html, body {
   margin: 0;
   width: 100vw;
   height: 100vh;
-  background: #00FF00; /* グリーンバック */
+  background: #00FF00;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -41,20 +40,39 @@ html, body {
   align-items: center;
   font-size: 140px;
   box-shadow: 0 20px 50px rgba(0,0,0,0.5);
-  transition: filter 0.2s ease;
+  transition: transform 0.6s ease, filter 0.2s ease;
+  transform-style: preserve-3d;
 }
 
-/* 決定フラッシュ */
+/* フラッシュ */
 .flash {
   filter: brightness(2.5);
+}
+
+/* 回転 */
+.spin {
+  transform: rotateY(360deg) rotateZ(8deg);
+}
+
+/* ジャンプ＋バウンド */
+.bounce {
+  animation: bounceCard 0.5s ease-out forwards;
+}
+
+@keyframes bounceCard {
+  0%   { transform: translateY(0); }
+  30%  { transform: translateY(-40px); }
+  60%  { transform: translateY(10px); }
+  80%  { transform: translateY(-5px); }
+  100% { transform: translateY(0); }
 }
 
 /* 文字強化 */
 #result {
   color: #111;
   text-shadow:
-    0 0 10px rgba(255,255,255,0.8),
-    0 6px 12px rgba(0,0,0,0.4);
+    0 0 10px rgba(255,255,255,0.9),
+    0 8px 18px rgba(0,0,0,0.5);
 }
 
 /* ボタン */
@@ -119,27 +137,39 @@ btn.addEventListener("click", () => {
 
   btn.disabled = true;
   result.textContent = "？";
+  card.classList.remove("spin","bounce","flash");
 
   shuffleSound.loop = true;
   shuffleSound.currentTime = 0;
   shuffleSound.play().catch(()=>{});
 
   const totalDuration = 5000;
-  const slowStart = 4500; // 最後0.5秒減速
+  const slowStart = 4500;
   const startTime = Date.now();
 
   function shuffle() {
     const elapsed = Date.now() - startTime;
 
     if (elapsed >= totalDuration) {
+
       shuffleSound.pause();
       shuffleSound.currentTime = 0;
 
       result.textContent = getRandom();
       resultSound.play().catch(()=>{});
 
+      // 決定演出
+      card.classList.add("spin");
       card.classList.add("flash");
-      setTimeout(()=>card.classList.remove("flash"),200);
+
+      setTimeout(()=>{
+        card.classList.remove("flash");
+        card.classList.add("bounce");
+      },300);
+
+      setTimeout(()=>{
+        card.classList.remove("spin","bounce");
+      },800);
 
       btn.disabled = false;
       return;
@@ -150,10 +180,10 @@ btn.addEventListener("click", () => {
     let interval;
 
     if (elapsed < slowStart) {
-      interval = 120; // 通常速度
+      interval = 110;
     } else {
       const progress = (elapsed - slowStart) / 500;
-      interval = 120 + Math.pow(progress, 2) * 400; // 指数減速
+      interval = 110 + Math.pow(progress, 2) * 400;
     }
 
     setTimeout(shuffle, interval);
