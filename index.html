@@ -2,147 +2,294 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>Random Card Animation</title>
+<title>五十音カードガチャ - ショートバズ版</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@900&display=swap" rel="stylesheet">
+
 <style>
-  body {
-    margin: 0;
-    background: #111;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    overflow: hidden;
-  }
-  canvas {
-    background: #1a1a2e;
-  }
+html, body {
+  margin: 0;
+  width: 100vw;
+  height: 100vh;
+  background: #00E600;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-family: 'Noto Sans JP', sans-serif;
+  overflow: hidden;
+}
+
+.container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  padding-top: 15%;
+}
+
+/* ===== カード ===== */
+.card {
+  width: 220px;
+  height: 280px;
+  background: white;
+  border-radius: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 140px;
+  margin: 20px auto;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+  transition: transform 0.6s, filter 0.2s;
+}
+
+.flip {
+  transform: rotateY(360deg) rotateZ(10deg) scale(1.05);
+}
+
+.flash {
+  filter: brightness(2.8);
+}
+
+.bounce {
+  animation: bounceCard 0.4s ease-out forwards;
+}
+
+@keyframes bounceCard {
+  0% { transform: scale(1.05) translateY(0); }
+  50% { transform: scale(1.2) translateY(-20px); }
+  100% { transform: scale(1.05) translateY(0); }
+}
+
+/* ===== 文字強化 ===== */
+#result {
+  font-weight: 900;
+  text-shadow:
+    0 0 8px #fff,
+    0 6px 12px rgba(0,0,0,0.6),
+    0 0 25px rgba(0,0,0,0.4);
+  transition: transform 0.2s ease;
+}
+
+.pop {
+  transform: scale(1.15);
+}
+
+/* ===== ボタン ===== */
+#drawBtn {
+  position: absolute;
+  bottom: 30%;
+  padding: 16px 40px;
+  font-size: 22px;
+  border-radius: 30px;
+  border: none;
+  cursor: pointer;
+  background: #ff4444;
+  color: white;
+}
+
+/* ===== カウントダウン ===== */
+.countdown-wrapper {
+  position: absolute;
+  top: 15%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 200px;
+  height: 200px;
+  z-index: 9999;
+  display: none;
+}
+
+.countdown-wrapper svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform: rotate(-90deg);
+}
+
+.count-number {
+  position: absolute;
+  width: 200px;
+  height: 200px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 90px;
+  font-weight: bold;
+  color: white;
+  text-shadow: 0 0 25px black;
+}
+
+circle {
+  fill: none;
+  stroke-width: 12;
+}
+
+.progress-ring {
+  stroke: #ff0000; /* 🔴 赤固定 */
+  stroke-linecap: round;
+}
 </style>
 </head>
+
 <body>
 
-<canvas id="canvas" width="800" height="600"></canvas>
+<div class="container">
+  <div class="card" id="card">
+    <div id="result">？</div>
+  </div>
+  <button id="drawBtn">めくる！</button>
+</div>
+
+<div class="countdown-wrapper" id="countdownWrapper">
+  <svg width="200" height="200">
+    <circle cx="100" cy="100" r="85" stroke="transparent"></circle>
+    <circle class="progress-ring" id="progressRing" cx="100" cy="100" r="85"></circle>
+  </svg>
+  <div class="count-number" id="countNumber"></div>
+</div>
+
+<audio id="shuffleSound" src="shuffle.mp3"></audio>
+<audio id="resultSound" src="result.mp3"></audio>
 
 <script>
-const canvas = document.getElementById("canvas");
-const ctx = canvas.getContext("2d");
+const gojyuon = [
+  "あ","い","う","え","お",
+  "か","き","く","け","こ",
+  "さ","し","す","せ","そ",
+  "た","ち","つ","て","と",
+  "な","に","ぬ","ね","の",
+  "は","ひ","ふ","へ","ほ",
+  "ま","み","む","め","も",
+  "や","ゆ","よ",
+  "ら","り","る","れ","ろ",
+  "わ","を","ん",
+  "が","ぎ","ぐ","げ","ご",
+  "ざ","じ","ず","ぜ","ぞ",
+  "だ","ぢ","づ","で","ど",
+  "ば","び","ぶ","べ","ぼ",
+  "ぱ","ぴ","ぷ","ぺ","ぽ"
+];
 
-const cards = ["A","B","C","D","E"];
+const colors = ["#ff0000","#ff00ff","#0000ff","#00ccff","#ff9900","#00cc00"];
 
-let spinning = false;
-let stopRequested = false;
-let ultraSlow = false;
+const result = document.getElementById("result");
+const btn = document.getElementById("drawBtn");
+const card = document.getElementById("card");
+const shuffleSound = document.getElementById("shuffleSound");
+const resultSound = document.getElementById("resultSound");
 
-let currentCard = cards[Math.floor(Math.random()*cards.length)];
-let finalCard = null;
+const wrapper = document.getElementById("countdownWrapper");
+const number = document.getElementById("countNumber");
+const ring = document.getElementById("progressRing");
 
-let angle = 0;
-let spinSpeed = 0.5;
+const radius = 85;
+const circumference = 2 * Math.PI * radius;
+ring.style.strokeDasharray = circumference;
 
-let stopTime = 0;
-const ultraSlowDuration = 300;
-
-let yOffset = 0;
-let velocity = 0;
-const gravity = 0.8;
-let bouncing = false;
-
-function randomColor(){
-  return `rgb(${80+Math.random()*175},
-              ${80+Math.random()*175},
-              ${80+Math.random()*175})`;
+function getRandom() {
+  return gojyuon[Math.floor(Math.random() * gojyuon.length)];
 }
 
-document.addEventListener("keydown", e => {
+function getRandomColor(){
+  return colors[Math.floor(Math.random()*colors.length)];
+}
 
-  if(e.code === "Space" && !spinning){
-    spinning = true;
-    stopRequested = false;
-    spinSpeed = 0.5;
+function startCountdown() {
+  let count = 5;
+  wrapper.style.display = "block";
+
+  function tick() {
+    number.textContent = count;
+
+    ring.style.transition = "none";
+    ring.style.strokeDashoffset = circumference;
+
+    setTimeout(()=>{
+      ring.style.transition = "stroke-dashoffset 1s linear";
+      ring.style.strokeDashoffset = 0;
+    },50);
+
+    if(count===0){
+      wrapper.style.display="none";
+      card.classList.add("bounce");
+      setTimeout(()=>card.classList.remove("bounce"),400);
+      return;
+    }
+
+    count--;
+    setTimeout(tick,1000);
   }
 
-  if(e.code === "Enter" && spinning){
-    stopRequested = true;
-    stopTime = performance.now();
+  tick();
+}
+
+function flashCard() {
+  card.classList.add("flash");
+  setTimeout(()=>card.classList.remove("flash"),200);
+}
+
+btn.addEventListener("click",()=>{
+
+  btn.disabled=true;
+  card.classList.remove("flip");
+  result.textContent="？";
+  result.style.color="#111";
+
+  shuffleSound.loop=true;
+  shuffleSound.currentTime=0;
+  shuffleSound.play().catch(()=>{});
+
+  const totalDuration=5000;
+  const slowZone=4700;
+  const startTime=Date.now();
+
+  function shuffle(){
+    const elapsed=Date.now()-startTime;
+
+    if(elapsed>=totalDuration){
+
+      shuffleSound.pause();
+      shuffleSound.currentTime=0;
+
+      const finalChar=getRandom();
+      result.textContent=finalChar;
+      result.style.color=getRandomColor();
+
+      result.classList.add("pop");
+      card.classList.add("flip");
+      flashCard();
+      resultSound.play().catch(()=>{});
+
+      setTimeout(()=>{
+        result.classList.remove("pop");
+      },300);
+
+      setTimeout(startCountdown,1000);
+      btn.disabled=false;
+      return;
+    }
+
+    result.textContent=getRandom();
+
+    let interval;
+
+    if(elapsed<slowZone){
+      interval=120;
+    }else{
+      const progress=(elapsed-slowZone)/300;
+      interval=120+Math.pow(progress,3)*800;
+    }
+
+    setTimeout(shuffle,interval);
   }
+
+  shuffle();
 });
-
-function draw(){
-
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-
-  // ===== 回転処理 =====
-  if(spinning){
-
-    if(stopRequested){
-      let elapsed = performance.now() - stopTime;
-
-      if(elapsed < ultraSlowDuration){
-        spinSpeed = 0.05; // 超スロー
-      } else {
-        spinning = false;
-        finalCard = cards[Math.floor(Math.random()*cards.length)];
-        currentCard = finalCard;
-
-        // ジャンプ開始
-        bouncing = true;
-        velocity = -18;
-      }
-    } else {
-      currentCard = cards[Math.floor(Math.random()*cards.length)];
-    }
-
-    angle += spinSpeed;
-  }
-
-  // ===== バウンド処理 =====
-  if(bouncing){
-    velocity += gravity;
-    yOffset += velocity;
-
-    if(yOffset > 0){
-      yOffset = 0;
-      velocity *= -0.6;
-      if(Math.abs(velocity) < 2){
-        bouncing = false;
-      }
-    }
-  }
-
-  // ===== 文字描画 =====
-  ctx.save();
-  ctx.translate(canvas.width/2, canvas.height/2 + yOffset);
-  ctx.rotate(angle);
-  ctx.fillStyle = randomColor();
-  ctx.font = "bold 120px sans-serif";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText(currentCard, 0, 0);
-  ctx.restore();
-
-  // ===== カウントダウンリング（赤固定）=====
-  if(spinning && stopRequested){
-    let progress = Math.min(
-      (performance.now() - stopTime) / ultraSlowDuration,
-      1
-    );
-
-    let radius = 150;
-    let startAngle = -Math.PI/2;
-    let endAngle = startAngle + progress * Math.PI * 2;
-
-    ctx.beginPath();
-    ctx.strokeStyle = "red";   // 🔴 赤固定
-    ctx.lineWidth = 12;
-    ctx.arc(canvas.width/2, canvas.height/2, radius,
-            startAngle, endAngle);
-    ctx.stroke();
-  }
-
-  requestAnimationFrame(draw);
-}
-
-draw();
 </script>
 
 </body>
 </html>
+
