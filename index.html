@@ -4,16 +4,19 @@
 <meta charset="UTF-8">
 <title>五十音カード</title>
 
+<!-- 極太フォント -->
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@900&display=swap" rel="stylesheet">
+
 <style>
 html, body {
   margin: 0;
   width: 100vw;
   height: 100vh;
-  background: #ffffff; /* 白背景 */
+  background: #00FF00; /* グリーンバック */
   display: flex;
   justify-content: center;
   align-items: center;
-  font-family: sans-serif;
+  font-family: 'Noto Sans JP', sans-serif;
   overflow: hidden;
 }
 
@@ -24,74 +27,49 @@ html, body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding-top: 15%;
+  padding-top: 12%;
 }
 
 /* カード */
 .card {
-  width: 220px;
-  height: 280px;
-  background: #f5f5f5;
-  border-radius: 20px;
+  width: 260px;
+  height: 320px;
+  background: white;
+  border-radius: 25px;
   display: flex;
   justify-content: center;
   align-items: center;
-  font-size: 110px;
-  margin-top: 30px;
-  box-shadow: 0 15px 30px rgba(0,0,0,0.2);
+  font-size: 140px;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+  transition: filter 0.2s ease;
+}
+
+/* 決定フラッシュ */
+.flash {
+  filter: brightness(2.5);
+}
+
+/* 文字強化 */
+#result {
+  color: #111;
+  text-shadow:
+    0 0 10px rgba(255,255,255,0.8),
+    0 6px 12px rgba(0,0,0,0.4);
 }
 
 /* ボタン */
 #drawBtn {
   position: absolute;
-  bottom: 30%; /* 下30%空ける */
-  padding: 16px 40px;
-  font-size: 22px;
-  border-radius: 30px;
+  bottom: 30%;
+  padding: 18px 50px;
+  font-size: 24px;
+  font-weight: bold;
+  border-radius: 40px;
   border: none;
   cursor: pointer;
-  background: #ff4444;
+  background: #ff0000;
   color: white;
-}
-
-/* カウントダウン */
-.countdown-wrapper {
-  position: absolute;
-  top: 10%;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 200px;
-  height: 200px;
-  display: none;
-}
-
-.countdown-wrapper svg {
-  position: absolute;
-  top: 0;
-  left: 0;
-  transform: rotate(-90deg);
-}
-
-.count-number {
-  position: absolute;
-  width: 200px;
-  height: 200px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  font-size: 80px;
-  font-weight: bold;
-  color: #333;
-}
-
-circle {
-  fill: none;
-  stroke-width: 12;
-}
-
-.progress-ring {
-  stroke: #ff4444;
-  stroke-linecap: round;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.4);
 }
 </style>
 </head>
@@ -99,19 +77,10 @@ circle {
 <body>
 
 <div class="container">
-  <div class="card">
+  <div class="card" id="card">
     <div id="result">？</div>
   </div>
   <button id="drawBtn">めくる！</button>
-</div>
-
-<div class="countdown-wrapper" id="countdownWrapper">
-  <svg width="200" height="200">
-    <circle cx="100" cy="100" r="85" stroke="#eee"></circle>
-    <circle class="progress-ring" id="progressRing"
-      cx="100" cy="100" r="85"></circle>
-  </svg>
-  <div class="count-number" id="countNumber"></div>
 </div>
 
 <audio id="shuffleSound" src="shuffle.mp3"></audio>
@@ -138,51 +107,14 @@ const gojyuon = [
 
 const result = document.getElementById("result");
 const btn = document.getElementById("drawBtn");
+const card = document.getElementById("card");
 const shuffleSound = document.getElementById("shuffleSound");
 const resultSound = document.getElementById("resultSound");
 
-const wrapper = document.getElementById("countdownWrapper");
-const number = document.getElementById("countNumber");
-const ring = document.getElementById("progressRing");
-
-const radius = 85;
-const circumference = 2 * Math.PI * radius;
-ring.style.strokeDasharray = circumference;
-
-// ランダム取得
 function getRandom() {
   return gojyuon[Math.floor(Math.random() * gojyuon.length)];
 }
 
-// カウントダウン開始
-function startCountdown() {
-  let count = 5;
-  wrapper.style.display = "block";
-
-  function tick() {
-    number.textContent = count;
-
-    ring.style.transition = "none";
-    ring.style.strokeDashoffset = circumference;
-
-    setTimeout(() => {
-      ring.style.transition = "stroke-dashoffset 1s linear";
-      ring.style.strokeDashoffset = 0;
-    }, 50);
-
-    if (count === 0) {
-      wrapper.style.display = "none";
-      return;
-    }
-
-    count--;
-    setTimeout(tick, 1000);
-  }
-
-  tick();
-}
-
-// ボタン処理
 btn.addEventListener("click", () => {
 
   btn.disabled = true;
@@ -192,25 +124,42 @@ btn.addEventListener("click", () => {
   shuffleSound.currentTime = 0;
   shuffleSound.play().catch(()=>{});
 
-  let shuffleInterval = setInterval(() => {
+  const totalDuration = 5000;
+  const slowStart = 4500; // 最後0.5秒減速
+  const startTime = Date.now();
+
+  function shuffle() {
+    const elapsed = Date.now() - startTime;
+
+    if (elapsed >= totalDuration) {
+      shuffleSound.pause();
+      shuffleSound.currentTime = 0;
+
+      result.textContent = getRandom();
+      resultSound.play().catch(()=>{});
+
+      card.classList.add("flash");
+      setTimeout(()=>card.classList.remove("flash"),200);
+
+      btn.disabled = false;
+      return;
+    }
+
     result.textContent = getRandom();
-  }, 200);
 
-  setTimeout(() => {
+    let interval;
 
-    clearInterval(shuffleInterval);
+    if (elapsed < slowStart) {
+      interval = 120; // 通常速度
+    } else {
+      const progress = (elapsed - slowStart) / 500;
+      interval = 120 + Math.pow(progress, 2) * 400; // 指数減速
+    }
 
-    shuffleSound.pause();
-    shuffleSound.currentTime = 0;
+    setTimeout(shuffle, interval);
+  }
 
-    result.textContent = getRandom();
-    resultSound.play().catch(()=>{});
-
-    setTimeout(startCountdown, 1000);
-
-    btn.disabled = false;
-
-  }, 5000); // 5秒シャッフル
+  shuffle();
 });
 </script>
 
