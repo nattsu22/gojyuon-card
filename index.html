@@ -8,8 +8,7 @@ html, body {
   margin: 0;
   width: 100vw;
   height: 100vh;
-  background: #FFFFFF; /* 赤背景用クロマキーグリーン */
-  /*background: #00E600;*/ /* 赤背景用クロマキーグリーン */
+  background: #00E600; /* 赤背景用クロマキーグリーン */
   display: flex;
   justify-content: center;
   align-items: center;
@@ -48,13 +47,13 @@ html, body {
 }
 
 /* フラッシュ演出 */
-/*.flash {
+.flash {
   filter: brightness(3);
   transition: filter 0.2s;
 }
-*/
+
 /* カウント終了バウンド */
-/*.bounce {
+.bounce {
   animation: bounceCard 0.4s ease-out forwards;
 }
 
@@ -63,7 +62,7 @@ html, body {
   50% { transform: scale(1.2) translateY(-20px); }
   100% { transform: scale(1.05) translateY(0); }
 }
-*/
+
 /* ===== ボタン ===== */
 #drawBtn {
   position: absolute;
@@ -78,7 +77,7 @@ html, body {
 }
 
 /* ===== カウントダウン ===== */
-/*.countdown-wrapper {
+.countdown-wrapper {
   position: absolute;
   top: 15%;
   left: 50%;
@@ -127,7 +126,7 @@ circle {
   stroke: #00FFFF;
   stroke-linecap: round;
 }
-*/
+
 </style>
 </head>
 <body>
@@ -188,7 +187,6 @@ function getRandom() {
 }
 
 // カウントダウン
-/*
 function startCountdown() {
   let count = 5;
   wrapper.style.display = "block";
@@ -227,7 +225,7 @@ function flashCard() {
   card.classList.add("flash");
   setTimeout(()=>card.classList.remove("flash"),200);
 }
-*/
+
 // ボタン処理
 btn.addEventListener("click",()=>{
   btn.disabled=true;
@@ -266,4 +264,5 @@ btn.addEventListener("click",()=>{
 
 </body>
 </html>
+
 
