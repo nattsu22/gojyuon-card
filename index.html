@@ -1,168 +1,148 @@
-import pygame
-import random
-import math
-import sys
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>Random Card Animation</title>
+<style>
+  body {
+    margin: 0;
+    background: #111;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    overflow: hidden;
+  }
+  canvas {
+    background: #1a1a2e;
+  }
+</style>
+</head>
+<body>
 
-# =============================
-# 初期設定
-# =============================
-pygame.init()
-WIDTH, HEIGHT = 800, 600
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Random Card Animation")
+<canvas id="canvas" width="800" height="600"></canvas>
 
-clock = pygame.time.Clock()
-font = pygame.font.SysFont(None, 120)
+<script>
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
 
-RED = (255, 0, 0)
+const cards = ["A","B","C","D","E"];
 
-cards = ["A", "B", "C", "D", "E"]
+let spinning = false;
+let stopRequested = false;
+let ultraSlow = false;
 
-# =============================
-# 状態管理
-# =============================
-running = True
-spinning = False
-stop_requested = False
-ultra_slow = False
+let currentCard = cards[Math.floor(Math.random()*cards.length)];
+let finalCard = null;
 
-current_card = random.choice(cards)
-final_card = None
+let angle = 0;
+let spinSpeed = 0.5;
 
-spin_speed = 40
-angle = 0
+let stopTime = 0;
+const ultraSlowDuration = 300;
 
-spin_start_time = 0
-stop_time = 0
-ultra_slow_duration = 300  # 0.3秒
+let yOffset = 0;
+let velocity = 0;
+const gravity = 0.8;
+let bouncing = false;
 
-# ジャンプ・バウンド用
-jump_velocity = 0
-y_offset = 0
-gravity = 0.8
-bounce_power = -18
-bouncing = False
+function randomColor(){
+  return `rgb(${80+Math.random()*175},
+              ${80+Math.random()*175},
+              ${80+Math.random()*175})`;
+}
 
-# =============================
-# SEフック（必要なら実装）
-# =============================
-def play_decision_sound():
-    pass
+document.addEventListener("keydown", e => {
 
+  if(e.code === "Space" && !spinning){
+    spinning = true;
+    stopRequested = false;
+    spinSpeed = 0.5;
+  }
 
-# =============================
-# ランダム文字色
-# =============================
-def random_color():
-    return (
-        random.randint(80, 255),
-        random.randint(80, 255),
-        random.randint(80, 255),
-    )
+  if(e.code === "Enter" && spinning){
+    stopRequested = true;
+    stopTime = performance.now();
+  }
+});
 
+function draw(){
 
-# =============================
-# メインループ
-# =============================
-while running:
-    dt = clock.tick(60)
-    screen.fill((20, 20, 30))
+  ctx.clearRect(0,0,canvas.width,canvas.height);
 
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
+  // ===== 回転処理 =====
+  if(spinning){
 
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_SPACE and not spinning:
-                # スタート
-                spinning = True
-                stop_requested = False
-                ultra_slow = False
-                spin_start_time = pygame.time.get_ticks()
-                spin_speed = 40
+    if(stopRequested){
+      let elapsed = performance.now() - stopTime;
 
-            elif event.key == pygame.K_RETURN and spinning:
-                # 停止リクエスト
-                stop_requested = True
-                stop_time = pygame.time.get_ticks()
+      if(elapsed < ultraSlowDuration){
+        spinSpeed = 0.05; // 超スロー
+      } else {
+        spinning = false;
+        finalCard = cards[Math.floor(Math.random()*cards.length)];
+        currentCard = finalCard;
 
-    # =============================
-    # 回転処理
-    # =============================
-    if spinning:
+        // ジャンプ開始
+        bouncing = true;
+        velocity = -18;
+      }
+    } else {
+      currentCard = cards[Math.floor(Math.random()*cards.length)];
+    }
 
-        if stop_requested:
-            elapsed = pygame.time.get_ticks() - stop_time
+    angle += spinSpeed;
+  }
 
-            if elapsed < ultra_slow_duration:
-                ultra_slow = True
-                spin_speed = 5
-            else:
-                # 停止
-                spinning = False
-                final_card = random.choice(cards)
-                current_card = final_card
-                bouncing = True
-                jump_velocity = bounce_power
-                play_decision_sound()
+  // ===== バウンド処理 =====
+  if(bouncing){
+    velocity += gravity;
+    yOffset += velocity;
 
-        else:
-            # 通常高速
-            spin_speed = 40
-            current_card = random.choice(cards)
+    if(yOffset > 0){
+      yOffset = 0;
+      velocity *= -0.6;
+      if(Math.abs(velocity) < 2){
+        bouncing = false;
+      }
+    }
+  }
 
-        angle += spin_speed
+  // ===== 文字描画 =====
+  ctx.save();
+  ctx.translate(canvas.width/2, canvas.height/2 + yOffset);
+  ctx.rotate(angle);
+  ctx.fillStyle = randomColor();
+  ctx.font = "bold 120px sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(currentCard, 0, 0);
+  ctx.restore();
 
-    # =============================
-    # バウンド処理
-    # =============================
-    if bouncing:
-        jump_velocity += gravity
-        y_offset += jump_velocity
+  // ===== カウントダウンリング（赤固定）=====
+  if(spinning && stopRequested){
+    let progress = Math.min(
+      (performance.now() - stopTime) / ultraSlowDuration,
+      1
+    );
 
-        if y_offset > 0:
-            y_offset = 0
-            jump_velocity *= -0.6
-            if abs(jump_velocity) < 2:
-                bouncing = False
-                y_offset = 0
+    let radius = 150;
+    let startAngle = -Math.PI/2;
+    let endAngle = startAngle + progress * Math.PI * 2;
 
-    # =============================
-    # 文字描画
-    # =============================
-    color = random_color()
-    text_surface = font.render(current_card, True, color)
-    rotated = pygame.transform.rotate(text_surface, angle)
-    rect = rotated.get_rect(center=(WIDTH // 2, HEIGHT // 2 + y_offset))
-    screen.blit(rotated, rect)
+    ctx.beginPath();
+    ctx.strokeStyle = "red";   // 🔴 赤固定
+    ctx.lineWidth = 12;
+    ctx.arc(canvas.width/2, canvas.height/2, radius,
+            startAngle, endAngle);
+    ctx.stroke();
+  }
 
-    # =============================
-    # 赤固定カウントダウンリング
-    # =============================
-    if spinning and stop_requested:
-        progress = min(
-            (pygame.time.get_ticks() - stop_time) / ultra_slow_duration,
-            1
-        )
-        radius = 150
-        thickness = 12
-        end_angle = progress * 360
+  requestAnimationFrame(draw);
+}
 
-        pygame.draw.arc(
-            screen,
-            RED,
-            (
-                WIDTH // 2 - radius,
-                HEIGHT // 2 - radius,
-                radius * 2,
-                radius * 2
-            ),
-            -math.pi / 2,
-            -math.pi / 2 + math.radians(end_angle),
-            thickness
-        )
+draw();
+</script>
 
-    pygame.display.flip()
-
-pygame.quit()
-sys.exit()
+</body>
+</html>
