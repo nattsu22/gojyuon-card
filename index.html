@@ -9,7 +9,7 @@ html, body {
   margin: 0;
   width: 100vw;
   height: 100vh;
-  background: #ffffff;
+  background: #ffffff; /* 白背景 */
   display: flex;
   justify-content: center;
   align-items: center;
@@ -53,6 +53,46 @@ html, body {
   background: #ff4444;
   color: white;
 }
+
+/* カウントダウン */
+.countdown-wrapper {
+  position: absolute;
+  top: 10%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 200px;
+  height: 200px;
+  display: none;
+}
+
+.countdown-wrapper svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform: rotate(-90deg);
+}
+
+.count-number {
+  position: absolute;
+  width: 200px;
+  height: 200px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 80px;
+  font-weight: bold;
+  color: #333;
+}
+
+circle {
+  fill: none;
+  stroke-width: 12;
+}
+
+.progress-ring {
+  stroke: #ff4444;
+  stroke-linecap: round;
+}
 </style>
 </head>
 
@@ -63,6 +103,15 @@ html, body {
     <div id="result">？</div>
   </div>
   <button id="drawBtn">めくる！</button>
+</div>
+
+<div class="countdown-wrapper" id="countdownWrapper">
+  <svg width="200" height="200">
+    <circle cx="100" cy="100" r="85" stroke="#eee"></circle>
+    <circle class="progress-ring" id="progressRing"
+      cx="100" cy="100" r="85"></circle>
+  </svg>
+  <div class="count-number" id="countNumber"></div>
 </div>
 
 <audio id="shuffleSound" src="shuffle.mp3"></audio>
@@ -92,10 +141,48 @@ const btn = document.getElementById("drawBtn");
 const shuffleSound = document.getElementById("shuffleSound");
 const resultSound = document.getElementById("resultSound");
 
+const wrapper = document.getElementById("countdownWrapper");
+const number = document.getElementById("countNumber");
+const ring = document.getElementById("progressRing");
+
+const radius = 85;
+const circumference = 2 * Math.PI * radius;
+ring.style.strokeDasharray = circumference;
+
+// ランダム取得
 function getRandom() {
   return gojyuon[Math.floor(Math.random() * gojyuon.length)];
 }
 
+// カウントダウン開始
+function startCountdown() {
+  let count = 5;
+  wrapper.style.display = "block";
+
+  function tick() {
+    number.textContent = count;
+
+    ring.style.transition = "none";
+    ring.style.strokeDashoffset = circumference;
+
+    setTimeout(() => {
+      ring.style.transition = "stroke-dashoffset 1s linear";
+      ring.style.strokeDashoffset = 0;
+    }, 50);
+
+    if (count === 0) {
+      wrapper.style.display = "none";
+      return;
+    }
+
+    count--;
+    setTimeout(tick, 1000);
+  }
+
+  tick();
+}
+
+// ボタン処理
 btn.addEventListener("click", () => {
 
   btn.disabled = true;
@@ -105,7 +192,7 @@ btn.addEventListener("click", () => {
   shuffleSound.currentTime = 0;
   shuffleSound.play().catch(()=>{});
 
-  const shuffleInterval = setInterval(() => {
+  let shuffleInterval = setInterval(() => {
     result.textContent = getRandom();
   }, 200);
 
@@ -118,6 +205,8 @@ btn.addEventListener("click", () => {
 
     result.textContent = getRandom();
     resultSound.play().catch(()=>{});
+
+    setTimeout(startCountdown, 1000);
 
     btn.disabled = false;
 
