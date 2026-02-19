@@ -1,294 +1,168 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-<meta charset="UTF-8">
-<title>五十音カードガチャ - ショートバズ版</title>
+import pygame
+import random
+import math
+import sys
 
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@900&display=swap" rel="stylesheet">
+# =============================
+# 初期設定
+# =============================
+pygame.init()
+WIDTH, HEIGHT = 800, 600
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("Random Card Animation")
 
-<style>
-html, body {
-  margin: 0;
-  width: 100vw;
-  height: 100vh;
-  background: #00E600;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  font-family: 'Noto Sans JP', sans-serif;
-  overflow: hidden;
-}
+clock = pygame.time.Clock()
+font = pygame.font.SysFont(None, 120)
 
-.container {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  align-items: center;
-  padding-top: 15%;
-}
+RED = (255, 0, 0)
 
-/* ===== カード ===== */
-.card {
-  width: 220px;
-  height: 280px;
-  background: white;
-  border-radius: 20px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  font-size: 140px;
-  margin: 20px auto;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.5);
-  transition: transform 0.6s, filter 0.2s;
-}
+cards = ["A", "B", "C", "D", "E"]
 
-.flip {
-  transform: rotateY(360deg) rotateZ(10deg) scale(1.05);
-}
+# =============================
+# 状態管理
+# =============================
+running = True
+spinning = False
+stop_requested = False
+ultra_slow = False
 
-.flash {
-  filter: brightness(2.8);
-}
+current_card = random.choice(cards)
+final_card = None
 
-.bounce {
-  animation: bounceCard 0.4s ease-out forwards;
-}
+spin_speed = 40
+angle = 0
 
-@keyframes bounceCard {
-  0% { transform: scale(1.05) translateY(0); }
-  50% { transform: scale(1.2) translateY(-20px); }
-  100% { transform: scale(1.05) translateY(0); }
-}
+spin_start_time = 0
+stop_time = 0
+ultra_slow_duration = 300  # 0.3秒
 
-/* ===== 文字強化 ===== */
-#result {
-  font-weight: 900;
-  text-shadow:
-    0 0 8px #fff,
-    0 6px 12px rgba(0,0,0,0.6),
-    0 0 25px rgba(0,0,0,0.4);
-  transition: transform 0.2s ease;
-}
+# ジャンプ・バウンド用
+jump_velocity = 0
+y_offset = 0
+gravity = 0.8
+bounce_power = -18
+bouncing = False
 
-.pop {
-  transform: scale(1.15);
-}
+# =============================
+# SEフック（必要なら実装）
+# =============================
+def play_decision_sound():
+    pass
 
-/* ===== ボタン ===== */
-#drawBtn {
-  position: absolute;
-  bottom: 30%;
-  padding: 16px 40px;
-  font-size: 22px;
-  border-radius: 30px;
-  border: none;
-  cursor: pointer;
-  background: #ff4444;
-  color: white;
-}
 
-/* ===== カウントダウン ===== */
-.countdown-wrapper {
-  position: absolute;
-  top: 15%;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 200px;
-  height: 200px;
-  z-index: 9999;
-  display: none;
-}
+# =============================
+# ランダム文字色
+# =============================
+def random_color():
+    return (
+        random.randint(80, 255),
+        random.randint(80, 255),
+        random.randint(80, 255),
+    )
 
-.countdown-wrapper svg {
-  position: absolute;
-  top: 0;
-  left: 0;
-  transform: rotate(-90deg);
-}
 
-.count-number {
-  position: absolute;
-  width: 200px;
-  height: 200px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  font-size: 90px;
-  font-weight: bold;
-  color: white;
-  text-shadow: 0 0 25px black;
-}
+# =============================
+# メインループ
+# =============================
+while running:
+    dt = clock.tick(60)
+    screen.fill((20, 20, 30))
 
-circle {
-  fill: none;
-  stroke-width: 12;
-}
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
 
-.progress-ring {
-  stroke: #00FFFF;
-  stroke-linecap: round;
-}
-</style>
-</head>
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_SPACE and not spinning:
+                # スタート
+                spinning = True
+                stop_requested = False
+                ultra_slow = False
+                spin_start_time = pygame.time.get_ticks()
+                spin_speed = 40
 
-<body>
+            elif event.key == pygame.K_RETURN and spinning:
+                # 停止リクエスト
+                stop_requested = True
+                stop_time = pygame.time.get_ticks()
 
-<div class="container">
-  <div class="card" id="card">
-    <div id="result">？</div>
-  </div>
-  <button id="drawBtn">めくる！</button>
-</div>
+    # =============================
+    # 回転処理
+    # =============================
+    if spinning:
 
-<div class="countdown-wrapper" id="countdownWrapper">
-  <svg width="200" height="200">
-    <circle cx="100" cy="100" r="85" stroke="transparent"></circle>
-    <circle class="progress-ring" id="progressRing" cx="100" cy="100" r="85"></circle>
-  </svg>
-  <div class="count-number" id="countNumber"></div>
-</div>
+        if stop_requested:
+            elapsed = pygame.time.get_ticks() - stop_time
 
-<audio id="shuffleSound" src="shuffle.mp3"></audio>
-<audio id="resultSound" src="result.mp3"></audio>
+            if elapsed < ultra_slow_duration:
+                ultra_slow = True
+                spin_speed = 5
+            else:
+                # 停止
+                spinning = False
+                final_card = random.choice(cards)
+                current_card = final_card
+                bouncing = True
+                jump_velocity = bounce_power
+                play_decision_sound()
 
-<script>
-const gojyuon = [
-  "あ","い","う","え","お",
-  "か","き","く","け","こ",
-  "さ","し","す","せ","そ",
-  "た","ち","つ","て","と",
-  "な","に","ぬ","ね","の",
-  "は","ひ","ふ","へ","ほ",
-  "ま","み","む","め","も",
-  "や","ゆ","よ",
-  "ら","り","る","れ","ろ",
-  "わ","を","ん",
-  "が","ぎ","ぐ","げ","ご",
-  "ざ","じ","ず","ぜ","ぞ",
-  "だ","ぢ","づ","で","ど",
-  "ば","び","ぶ","べ","ぼ",
-  "ぱ","ぴ","ぷ","ぺ","ぽ"
-];
+        else:
+            # 通常高速
+            spin_speed = 40
+            current_card = random.choice(cards)
 
-const colors = ["#ff0000","#ff00ff","#0000ff","#00ccff","#ff9900","#00cc00"];
+        angle += spin_speed
 
-const result = document.getElementById("result");
-const btn = document.getElementById("drawBtn");
-const card = document.getElementById("card");
-const shuffleSound = document.getElementById("shuffleSound");
-const resultSound = document.getElementById("resultSound");
+    # =============================
+    # バウンド処理
+    # =============================
+    if bouncing:
+        jump_velocity += gravity
+        y_offset += jump_velocity
 
-const wrapper = document.getElementById("countdownWrapper");
-const number = document.getElementById("countNumber");
-const ring = document.getElementById("progressRing");
+        if y_offset > 0:
+            y_offset = 0
+            jump_velocity *= -0.6
+            if abs(jump_velocity) < 2:
+                bouncing = False
+                y_offset = 0
 
-const radius = 85;
-const circumference = 2 * Math.PI * radius;
-ring.style.strokeDasharray = circumference;
+    # =============================
+    # 文字描画
+    # =============================
+    color = random_color()
+    text_surface = font.render(current_card, True, color)
+    rotated = pygame.transform.rotate(text_surface, angle)
+    rect = rotated.get_rect(center=(WIDTH // 2, HEIGHT // 2 + y_offset))
+    screen.blit(rotated, rect)
 
-function getRandom() {
-  return gojyuon[Math.floor(Math.random() * gojyuon.length)];
-}
+    # =============================
+    # 赤固定カウントダウンリング
+    # =============================
+    if spinning and stop_requested:
+        progress = min(
+            (pygame.time.get_ticks() - stop_time) / ultra_slow_duration,
+            1
+        )
+        radius = 150
+        thickness = 12
+        end_angle = progress * 360
 
-function getRandomColor(){
-  return colors[Math.floor(Math.random()*colors.length)];
-}
+        pygame.draw.arc(
+            screen,
+            RED,
+            (
+                WIDTH // 2 - radius,
+                HEIGHT // 2 - radius,
+                radius * 2,
+                radius * 2
+            ),
+            -math.pi / 2,
+            -math.pi / 2 + math.radians(end_angle),
+            thickness
+        )
 
-function startCountdown() {
-  let count = 5;
-  wrapper.style.display = "block";
+    pygame.display.flip()
 
-  function tick() {
-    number.textContent = count;
-
-    ring.style.transition = "none";
-    ring.style.strokeDashoffset = circumference;
-
-    setTimeout(()=>{
-      ring.style.transition = "stroke-dashoffset 1s linear";
-      ring.style.strokeDashoffset = 0;
-    },50);
-
-    if(count===0){
-      wrapper.style.display="none";
-      card.classList.add("bounce");
-      setTimeout(()=>card.classList.remove("bounce"),400);
-      return;
-    }
-
-    count--;
-    setTimeout(tick,1000);
-  }
-
-  tick();
-}
-
-function flashCard() {
-  card.classList.add("flash");
-  setTimeout(()=>card.classList.remove("flash"),200);
-}
-
-btn.addEventListener("click",()=>{
-
-  btn.disabled=true;
-  card.classList.remove("flip");
-  result.textContent="？";
-  result.style.color="#111";
-
-  shuffleSound.loop=true;
-  shuffleSound.currentTime=0;
-  shuffleSound.play().catch(()=>{});
-
-  const totalDuration=5000;
-  const slowZone=4700;
-  const startTime=Date.now();
-
-  function shuffle(){
-    const elapsed=Date.now()-startTime;
-
-    if(elapsed>=totalDuration){
-
-      shuffleSound.pause();
-      shuffleSound.currentTime=0;
-
-      const finalChar=getRandom();
-      result.textContent=finalChar;
-      result.style.color=getRandomColor();
-
-      result.classList.add("pop");
-      card.classList.add("flip");
-      flashCard();
-      resultSound.play().catch(()=>{});
-
-      setTimeout(()=>{
-        result.classList.remove("pop");
-      },300);
-
-      setTimeout(startCountdown,1000);
-      btn.disabled=false;
-      return;
-    }
-
-    result.textContent=getRandom();
-
-    let interval;
-
-    if(elapsed<slowZone){
-      interval=120;
-    }else{
-      const progress=(elapsed-slowZone)/300;
-      interval=120+Math.pow(progress,3)*800;
-    }
-
-    setTimeout(shuffle,interval);
-  }
-
-  shuffle();
-});
-</script>
-
-</body>
-</html>
+pygame.quit()
+sys.exit()
